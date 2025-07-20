@@ -181,20 +181,20 @@ func (a *Fail2Ban) ServeHTTP(responseWriter http.ResponseWriter, request *http.R
 		return
 	}
 
+	for _, ipNet := range a.staticAllowedIPNets {
+		a.logger.Debug("Checking if remoteIP is in static allowed Netmask.", "remoteIP", remoteIP, "netmask", ipNet, "phase", "check_request")
+		if ipNet.Contains(net.ParseIP(remoteIP)) {
+			a.logger.Debug("RemoteIP was found in staticAllowedIPNets. Access Granted.", "remoteIP", remoteIP, "staticAllowedIPNets", a.staticAllowedIPNets, "phase", "check_request", "status", "granted")
+			a.next.ServeHTTP(responseWriter, request)
+			return
+		}
+	}
+	
 	for _, ipNet := range a.staticDeniedIPNets {
 		a.logger.Debug("Checking if remoteIP is in static denied Netmask.", "remoteIP", remoteIP, "netmask", ipNet, "phase", "check_request")
 		if ipNet.Contains(net.ParseIP(remoteIP)) {
 			a.logger.Info("RemoteIP was found in staticDeniedIPNets. Access Denied.", "remoteIP", remoteIP, "staticDeniedIPNets", a.staticDeniedIPNets, "phase", "check_request", "status", "denied")
 			responseWriter.WriteHeader(http.StatusForbidden)
-			return
-		}
-	}
-
-	for _, ipNet := range a.staticAllowedIPNets {
-		a.logger.Debug("Checking if remoteIP is in static allowed Netmask.", "remoteIP", remoteIP, "netmask", ipNet, "phase", "check_request")
-		if ipNet.Contains(net.ParseIP(remoteIP)) {
-			a.logger.Info("RemoteIP was found in staticAllowedIPNets. Access Granted.", "remoteIP", remoteIP, "staticAllowedIPNets", a.staticAllowedIPNets, "phase", "check_request", "status", "granted")
-			a.next.ServeHTTP(responseWriter, request)
 			return
 		}
 	}
